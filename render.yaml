@@ -1,0 +1,40 @@
+services:
+  # Backend Service
+  - type: web
+    name: ecommerce-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: 7xpqqUvuF0lqPXVA764SyXoevQMrX7emklRo5kyVq1Y=
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        fromService:
+          name: ecommerce-frontend
+          type: static_site
+          property: url
+
+  # Frontend Service
+  - type: web
+    name: ecommerce-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: ecommerce-backend
+          type: web
+          property: url
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

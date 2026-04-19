@@ -78,7 +78,13 @@ class ProductService {
       throw new ApiError(403, 'Not authorized to modify this product');
     }
     
-    const imageUrls = files.map(file => file.path);
+    const imageUrls = files.map(file => {
+      // If Cloudinary is configured, file.path contains the URL
+      // If using memory storage (demo mode), we generate a placeholder
+      if (file.path) return file.path;
+      return `https://placehold.co/600x600/png?text=${encodeURIComponent(product.name + '_Image')}`;
+    });
+
     let updatedProduct;
     for (const url of imageUrls) {
       updatedProduct = await productRepository.addImage(id, url);
@@ -95,19 +101,22 @@ class ProductService {
     const imageUrl = product.images[index];
     if (!imageUrl) throw new ApiError(400, 'Image not found at that index');
 
-    // Extract public_id from Cloudinary URL (assuming standard format)
-    const urlParts = imageUrl.split('/');
-    const publicIdWithExtract = urlParts[urlParts.length - 1]; // e.g. "image_id.jpg"
-    const publicId = `ecommerce_products/${publicIdWithExtract.split('.')[0]}`; // Reconstruct path
-    
-    try {
-      await cloudinary.uploader.destroy(publicId);
-    } catch(err) {
-      console.log('Failed to delete image from Cloudinary', err);
+    // Only attempt Cloudinary delete if it looks like a Cloudinary URL
+    if (imageUrl.includes('cloudinary.com')) {
+      const urlParts = imageUrl.split('/');
+      const publicIdWithExtract = urlParts[urlParts.length - 1]; 
+      const publicId = `ecommerce_products/${publicIdWithExtract.split('.')[0]}`; 
+      
+      try {
+        await cloudinary.uploader.destroy(publicId);
+      } catch(err) {
+        console.log('Failed to delete image from Cloudinary', err);
+      }
     }
 
     return await productRepository.removeImage(id, imageUrl);
   }
 }
+
 
 export default new ProductService();

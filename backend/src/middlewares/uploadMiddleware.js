@@ -3,14 +3,23 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import cloudinary from '../config/cloudinary.js';
 import ApiError from '../utils/ApiError.js';
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'ecommerce_products',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
-  },
-});
+let storage;
+
+const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'undefined';
+
+if (isCloudinaryConfigured) {
+  storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'ecommerce_products',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
+    },
+  });
+} else {
+  console.warn('⚠️ Cloudinary not configured. Using Memory Storage for demo mode.');
+  storage = multer.memoryStorage();
+}
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
@@ -29,3 +38,4 @@ const upload = multer({
 });
 
 export default upload;
+
